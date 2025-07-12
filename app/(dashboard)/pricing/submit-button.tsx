@@ -1,30 +1,28 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Loader2 } from 'lucide-react';
 import { useFormStatus } from 'react-dom';
+import { Loader2 } from 'lucide-react';
 
 export function SubmitButton() {
   const { pending } = useFormStatus();
 
   return (
-    <Button
-      type="submit"
-      disabled={pending}
-      variant="outline"
-      className="w-full rounded-full"
-    >
-      {pending ? (
-        <>
-          <Loader2 className="animate-spin mr-2 h-4 w-4" />
-          Loading...
-        </>
-      ) : (
-        <>
-          Get Started
-          <ArrowRight className="ml-2 h-4 w-4" />
-        </>
-      )}
-    </Button>
+    <div className="w-full">
+      <Button
+        type="submit"
+        className="w-full bg-orange-500 hover:bg-orange-600 text-white text-lg py-3 rounded-xl font-semibold"
+        disabled={pending}
+      >
+        {pending ? (
+          <>
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            Processing...
+          </>
+        ) : (
+          'Get Lifetime Access Now'
+        )}
+      </Button>
+    </div>
   );
 }

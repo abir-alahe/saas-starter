@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { use, useState, Suspense } from 'react';
+import { useState, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { CircleIcon, Home, LogOut } from 'lucide-react';
 import {
@@ -14,22 +14,21 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { signOut } from '@/app/(login)/actions';
 import { useRouter } from 'next/navigation';
 import { User } from '@/lib/db/schema';
-import useSWR, { mutate } from 'swr';
-
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+import { useAuth } from '@/lib/hooks/use-auth';
+import Footer from '@/components/section/layout/footer/Footer';
+import { PiDogFill } from 'react-icons/pi';
 
 function UserMenu() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { data: user } = useSWR<User>('/api/user', fetcher);
-  const router = useRouter();
+  const { user, isAuthenticated, isLoading, signOut } = useAuth();
 
-  async function handleSignOut() {
-    await signOut();
-    mutate('/api/user');
-    router.push('/');
+  // Show loading state
+  if (isLoading) {
+    return <div className="h-9 w-9 animate-pulse bg-gray-200 rounded-full" />;
   }
 
-  if (!user) {
+  // Show sign-in/sign-up buttons when not authenticated
+  if (!isAuthenticated || !user) {
     return (
       <>
         <Link
@@ -45,16 +44,29 @@ function UserMenu() {
     );
   }
 
+  // Generate user initials safely
+  const getUserInitials = () => {
+    if (user.name) {
+      return user.name
+        .split(' ')
+        .map((n: string) => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
+    }
+    if (user.email) {
+      return user.email.charAt(0).toUpperCase();
+    }
+    return 'U';
+  };
+
   return (
     <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
       <DropdownMenuTrigger>
         <Avatar className="cursor-pointer size-9">
-          <AvatarImage alt={user.name || ''} />
-          <AvatarFallback>
-            {user.email
-              .split(' ')
-              .map((n) => n[0])
-              .join('')}
+          <AvatarImage alt={user.name || user.email || 'User'} />
+          <AvatarFallback className="bg-orange-100 text-orange-600">
+            {getUserInitials()}
           </AvatarFallback>
         </Avatar>
       </DropdownMenuTrigger>
@@ -65,14 +77,15 @@ function UserMenu() {
             <span>Dashboard</span>
           </Link>
         </DropdownMenuItem>
-        <form action={handleSignOut} className="w-full">
-          <button type="submit" className="flex w-full">
-            <DropdownMenuItem className="w-full flex-1 cursor-pointer">
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>Sign out</span>
-            </DropdownMenuItem>
-          </button>
-        </form>
+        <button 
+          onClick={() => signOut()} 
+          className="flex w-full"
+        >
+          <DropdownMenuItem className="w-full flex-1 cursor-pointer">
+            <LogOut className="mr-2 h-4 w-4" />
+            <span>Sign out</span>
+          </DropdownMenuItem>
+        </button>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -83,8 +96,10 @@ function Header() {
     <header className="border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
         <Link href="/" className="flex items-center">
-          <CircleIcon className="h-6 w-6 text-orange-500" />
-          <span className="ml-2 text-xl font-semibold text-gray-900">ACME</span>
+          <PiDogFill className="h-6 w-6 text-orange-500" />
+          <span className="ml-2 text-xl font-semibold text-gray-900">
+            BREEDBEAST
+          </span>
         </Link>
         <div className="flex items-center space-x-4">
           <Suspense fallback={<div className="h-9" />}>
@@ -101,6 +116,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     <section className="flex flex-col min-h-screen">
       <Header />
       {children}
+      <Footer/>
     </section>
   );
 }

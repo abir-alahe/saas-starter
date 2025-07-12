@@ -8,7 +8,7 @@ import LoveSvg from "./animation/LoveSvg";
 
 const HomeHero = () => {
   return (
-    <div className="bg-foreground py-[80px] md:py-[120px] rounded-b-[60px]">
+    <section className="bg-[#FF6900] py-[80px] md:py-[120px] rounded-b-[60px]">
       <div className="max-w-[1200px] mx-auto px-4">
         <div>
           <h1 className="font-ovsoge text-primary-foreground text-center text-4xl md:text-6xl lg:text-9xl font-bold flex flex-col items-center justify-center gap-2 md:gap-8">
@@ -20,8 +20,8 @@ const HomeHero = () => {
           </h1>
           <div className="grid grid-cols-1 md:grid-cols-3 items-center md:items-end justify-center justify-items-center gap-2 md:gap-8">
             <p className="max-w-[300px] md:max-w-[600px] text-center md:text-start text-sm md:text-lg lg:text-2xl text-muted md:me-auto font-bold md:text-balance">
-              Training with love - Your reliable partner in Dog Training and
-              Behavior
+              Training with love <br /> Your reliable partner in <br /> Dog
+              Training and Behavior
             </p>
             <div className="relative ">
               <Image
@@ -81,7 +81,7 @@ const HomeHero = () => {
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 };
 

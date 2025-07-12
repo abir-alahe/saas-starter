@@ -1,5 +1,5 @@
 import Stripe from 'stripe';
-import { handleSubscriptionChange, stripe } from '@/lib/payments/stripe';
+import { handlePaymentSuccess, stripe } from '@/lib/payments/stripe';
 import { NextRequest, NextResponse } from 'next/server';
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
@@ -21,10 +21,15 @@ export async function POST(request: NextRequest) {
   }
 
   switch (event.type) {
+    case 'payment_intent.succeeded':
+      const paymentIntent = event.data.object as Stripe.PaymentIntent;
+      await handlePaymentSuccess(paymentIntent);
+      break;
+    // Legacy subscription events (keeping for migration)
     case 'customer.subscription.updated':
     case 'customer.subscription.deleted':
       const subscription = event.data.object as Stripe.Subscription;
-      await handleSubscriptionChange(subscription);
+      console.log('Legacy subscription event:', subscription.id);
       break;
     default:
       console.log(`Unhandled event type ${event.type}`);

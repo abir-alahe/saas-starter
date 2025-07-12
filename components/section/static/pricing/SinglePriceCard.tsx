@@ -9,7 +9,7 @@ import { Star } from "lucide-react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { redirectToCheckout } from "@/lib/stripe";
+import { lifetimeCheckoutAction } from "@/lib/payments/actions";
 
 export interface Testimonial {
   id: number;
@@ -45,6 +45,7 @@ export interface SinglePricingCardProps {
     original?: string;
     discount?: string;
     discountBadgeClassName?: string;
+    priceId?: string; // Add Stripe price ID
   };
 
   // Benefits
@@ -216,9 +217,19 @@ function SinglePricingCardContent({
 
   const handlePayment = async () => {
     try {
-      await redirectToCheckout();
+      if (price.priceId) {
+        // Use the new lifetime checkout action
+        const formData = new FormData();
+        formData.append('priceId', price.priceId);
+        await lifetimeCheckoutAction(formData);
+      } else {
+        // Fallback to sign-up if no price ID is provided
+        window.location.href = '/sign-up';
+      }
     } catch (error) {
       console.error("Payment error:", error);
+      // Redirect to sign-in if user is not authenticated
+      window.location.href = '/sign-in';
     }
   };
 

@@ -104,7 +104,7 @@ export function PricingSectionBasic() {
             Dogs of all ages can learn new tricks!
           </h2>
           <p className="max-w-[700px] text-muted-foreground md:text-xl/relaxed">
-            You’re a Dog Training Star!
+            You're a Dog Training Star!
           </p>
         </div>
 
@@ -119,6 +119,7 @@ export function PricingSectionBasic() {
             current: "$9",
             original: "$69",
             discount: "$50 Off",
+            priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID || "price_placeholder", // Add your Stripe price ID here
           }}
           benefits={[
             {

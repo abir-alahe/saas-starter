@@ -121,7 +121,7 @@ const Footer = () => {
     <footer className="w-full bg-background flex justify-center pt-8 font-roboto-flex">
       <div
         ref={footerRef}
-        className="w-full bg-foreground rounded-t-4xl md:rounded-t-[50px] px-4 sm:px-6 md:px-12 py-8 md:py-14 flex flex-col gap-8 md:gap-12 shadow-lg relative"
+        className="w-full bg-[#FF6900] rounded-t-4xl md:rounded-t-[50px] px-4 sm:px-6 md:px-12 py-8 md:py-14 flex flex-col gap-8 md:gap-12 shadow-lg relative"
       >
         {/* Top Row: Logo, Nav, Social */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-0">

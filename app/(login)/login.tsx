@@ -1,24 +1,28 @@
 'use client';
 
 import Link from 'next/link';
-import { useActionState } from 'react';
+import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CircleIcon, Loader2 } from 'lucide-react';
-import { signIn, signUp } from './actions';
-import { ActionState } from '@/lib/auth/middleware';
+import { useAuth } from '@/lib/hooks/use-auth';
 
 export function Login({ mode = 'signin' }: { mode?: 'signin' | 'signup' }) {
   const searchParams = useSearchParams();
   const redirect = searchParams.get('redirect');
   const priceId = searchParams.get('priceId');
   const inviteId = searchParams.get('inviteId');
-  const [state, formAction, pending] = useActionState<ActionState, FormData>(
-    mode === 'signin' ? signIn : signUp,
-    { error: '' }
-  );
+  
+  const { signIn, signUp, isSigningIn, isSigningUp, signInError, signUpError } = useAuth();
+  
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    name: ''
+  });
+  const [error, setError] = useState('');
 
   return (
     <div className="min-h-[100dvh] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gray-50">
@@ -34,10 +38,30 @@ export function Login({ mode = 'signin' }: { mode?: 'signin' | 'signup' }) {
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <form className="space-y-6" action={formAction}>
-          <input type="hidden" name="redirect" value={redirect || ''} />
-          <input type="hidden" name="priceId" value={priceId || ''} />
-          <input type="hidden" name="inviteId" value={inviteId || ''} />
+        <form 
+          className="space-y-6" 
+          onSubmit={(e) => {
+            e.preventDefault();
+            setError('');
+            
+            if (mode === 'signin') {
+              signIn({
+                email: formData.email,
+                password: formData.password,
+                redirect: redirect || undefined,
+                priceId: priceId || undefined
+              });
+            } else {
+              signUp({
+                email: formData.email,
+                password: formData.password,
+                name: formData.name,
+                inviteId: inviteId || undefined,
+                redirect: redirect || undefined
+              });
+            }
+          }}
+        >
           <div>
             <Label
               htmlFor="email"
@@ -51,7 +75,8 @@ export function Login({ mode = 'signin' }: { mode?: 'signin' | 'signup' }) {
                 name="email"
                 type="email"
                 autoComplete="email"
-                defaultValue={state.email}
+                value={formData.email}
+                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                 required
                 maxLength={50}
                 className="appearance-none rounded-full relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 sm:text-sm"
@@ -59,6 +84,30 @@ export function Login({ mode = 'signin' }: { mode?: 'signin' | 'signup' }) {
               />
             </div>
           </div>
+
+          {mode === 'signup' && (
+            <div>
+              <Label
+                htmlFor="name"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Name
+              </Label>
+              <div className="mt-1">
+                <Input
+                  id="name"
+                  name="name"
+                  type="text"
+                  autoComplete="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  maxLength={100}
+                  className="appearance-none rounded-full relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 sm:text-sm"
+                  placeholder="Enter your name"
+                />
+              </div>
+            </div>
+          )}
 
           <div>
             <Label
@@ -75,7 +124,8 @@ export function Login({ mode = 'signin' }: { mode?: 'signin' | 'signup' }) {
                 autoComplete={
                   mode === 'signin' ? 'current-password' : 'new-password'
                 }
-                defaultValue={state.password}
+                value={formData.password}
+                onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
                 required
                 minLength={8}
                 maxLength={100}
@@ -85,17 +135,19 @@ export function Login({ mode = 'signin' }: { mode?: 'signin' | 'signup' }) {
             </div>
           </div>
 
-          {state?.error && (
-            <div className="text-red-500 text-sm">{state.error}</div>
+          {(error || signInError || signUpError) && (
+            <div className="text-red-500 text-sm">
+              {error || signInError?.message || signUpError?.message}
+            </div>
           )}
 
           <div>
             <Button
               type="submit"
               className="w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-full shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
-              disabled={pending}
+              disabled={isSigningIn || isSigningUp}
             >
-              {pending ? (
+              {(isSigningIn || isSigningUp) ? (
                 <>
                   <Loader2 className="animate-spin mr-2 h-4 w-4" />
                   Loading...

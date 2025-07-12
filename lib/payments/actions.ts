@@ -1,15 +1,37 @@
 'use server';
 
 import { redirect } from 'next/navigation';
-import { createCheckoutSession, createCustomerPortalSession } from './stripe';
-import { withTeam } from '@/lib/auth/middleware';
+import { createLifetimeCheckoutSession, createCustomerPortalSession } from './stripe';
+import { getUser } from '@/lib/db/queries';
 
-export const checkoutAction = withTeam(async (formData, team) => {
+export const lifetimeCheckoutAction = async (formData: FormData) => {
+  const user = await getUser();
+  if (!user) {
+    redirect('/sign-in');
+  }
+
   const priceId = formData.get('priceId') as string;
-  await createCheckoutSession({ team: team, priceId });
-});
+  await createLifetimeCheckoutSession({ user, priceId });
+};
 
-export const customerPortalAction = withTeam(async (_, team) => {
-  const portalSession = await createCustomerPortalSession(team);
+export const customerPortalAction = async () => {
+  const user = await getUser();
+  if (!user) {
+    redirect('/sign-in');
+  }
+
+  const portalSession = await createCustomerPortalSession(user);
   redirect(portalSession.url);
-});
+};
+
+// Legacy actions for migration (keeping for now)
+export const checkoutAction = async (formData: FormData) => {
+  const user = await getUser();
+  if (!user) {
+    redirect('/sign-in');
+  }
+
+  const priceId = formData.get('priceId') as string;
+  // This would need to be updated to work with the new system
+  console.log('Legacy checkout action called');
+};

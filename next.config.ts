@@ -5,7 +5,17 @@ const nextConfig: NextConfig = {
     ppr: true,
     clientSegmentCache: true,
     nodeMiddleware: true
-  }
+  },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'randomuser.me',
+        port: '',
+        pathname: '/api/portraits/**',
+      },
+    ],
+  },
 };
 
 export default nextConfig;
