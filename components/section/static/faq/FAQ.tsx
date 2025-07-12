@@ -1,4 +1,4 @@
-import FAQOne from "@/components/ui/FAQOne";
+import FAQOne from "@/components/ui/custom/FAQone";
 
 export default function FAQ() {
   const Faq = [

@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.11",
+    "@radix-ui/react-separator": "^1.1.7",
+    "@radix-ui/react-slot": "^1.2.3",
     "@tailwindcss/postcss": "4.1.7",
     "@types/node": "^22.15.18",
     "@types/react": "19.1.4",
@@ -23,6 +25,7 @@
     "dotenv": "^16.5.0",
     "drizzle-kit": "^0.31.1",
     "drizzle-orm": "^0.43.1",
+    "framer-motion": "^12.23.3",
     "gsap": "^3.13.0",
     "jose": "^6.0.11",
     "lucide-react": "^0.511.0",
