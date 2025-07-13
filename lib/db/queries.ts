@@ -12,50 +12,95 @@ import {
   userProgress 
 } from './schema';
 import { getUser as getSupabaseUser } from '@/lib/supabase/auth';
+import { createClient } from '@supabase/supabase-js';
 
-export async function getUser() {
-  try {
-    const supabaseUser = await getSupabaseUser();
+export async function getUser(accessToken?: string, refreshToken?: string) {
+  console.log('getUser: Starting to get Supabase user...');
+  
+  let supabaseUser;
+  
+  if (accessToken) {
+    // Use provided tokens
+    console.log('getUser: Using provided access token');
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
     
-    if (!supabaseUser) {
+    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
+    
+    if (error) {
+      console.log('getUser: Error getting user with provided token:', error);
       return null;
     }
-
-    // Get user from our database using Supabase user ID
-    const user = await db
-      .select()
-      .from(users)
-      .where(and(eq(users.id, supabaseUser.id), isNull(users.deletedAt)))
-      .limit(1);
-
-    if (user.length === 0) {
-      // Create user in our database if they don't exist, or update if they do
-      const [newUser] = await db
-        .insert(users)
-        .values({
-          id: supabaseUser.id,
-          email: supabaseUser.email!,
-          name: supabaseUser.user_metadata?.name || supabaseUser.email!.split('@')[0],
-          role: 'member',
-        })
-        .onConflictDoUpdate({
-          target: users.id,
-          set: {
-            email: supabaseUser.email!,
-            name: supabaseUser.user_metadata?.name || supabaseUser.email!.split('@')[0],
-            updatedAt: new Date(),
-          }
-        })
-        .returning();
-      
-      return newUser;
-    }
-
-    return user[0];
-  } catch (error) {
-    console.error('Error in getUser:', error);
+    
+    supabaseUser = user;
+  } else {
+    // Use server-side session
+    supabaseUser = await getSupabaseUser();
+  }
+  
+  console.log('getUser: Supabase user result:', {
+    userId: supabaseUser?.id,
+    email: supabaseUser?.email,
+    hasUser: !!supabaseUser
+  });
+  
+  if (!supabaseUser) {
+    console.log('getUser: No Supabase user found, returning null');
     return null;
   }
+  
+  // Get user from database
+  console.log('getUser: Getting user from database with ID:', supabaseUser.id);
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, supabaseUser.id))
+    .limit(1);
+  
+  console.log('getUser: Database user result:', {
+    userId: user?.id,
+    email: user?.email,
+    hasLifetimeAccess: user?.hasLifetimeAccess,
+    hasUser: !!user
+  });
+  
+  if (!user) {
+    console.log('getUser: User not found in database, creating new user...');
+    // Create user in our database if they don't exist
+    const [newUser] = await db
+      .insert(users)
+      .values({
+        id: supabaseUser.id,
+        email: supabaseUser.email!,
+        name: supabaseUser.user_metadata?.name || supabaseUser.email!.split('@')[0],
+        role: 'member',
+      })
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          email: supabaseUser.email!,
+          name: supabaseUser.user_metadata?.name || supabaseUser.email!.split('@')[0],
+          updatedAt: new Date(),
+        }
+      })
+      .returning();
+    
+    console.log('getUser: Created/updated user:', { 
+      userId: newUser.id, 
+      email: newUser.email,
+      hasLifetimeAccess: newUser.hasLifetimeAccess 
+    });
+    return newUser;
+  }
+  
+  console.log('getUser: Returning existing user:', { 
+    userId: user.id, 
+    email: user.email,
+    hasLifetimeAccess: user.hasLifetimeAccess 
+  });
+  return user;
 }
 
 export async function getUserByStripeCustomerId(customerId: string) {
@@ -80,6 +125,19 @@ export async function updateUserLifetimeAccess(
     .update(users)
     .set({
       ...lifetimeData,
+      updatedAt: new Date()
+    })
+    .where(eq(users.id, userId));
+}
+
+export async function updateUserStripeCustomerId(
+  userId: string,
+  stripeCustomerId: string
+) {
+  await db
+    .update(users)
+    .set({
+      stripeCustomerId,
       updatedAt: new Date()
     })
     .where(eq(users.id, userId));

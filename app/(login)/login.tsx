@@ -14,11 +14,13 @@ export function Login({ mode = 'signin' }: { mode?: 'signin' | 'signup' }) {
   const redirect = searchParams.get('redirect');
   const priceId = searchParams.get('priceId');
   const inviteId = searchParams.get('inviteId');
+  const success = searchParams.get('success');
+  const email = searchParams.get('email');
   
   const { signIn, signUp, isSigningIn, isSigningUp, signInError, signUpError } = useAuth();
   
   const [formData, setFormData] = useState({
-    email: '',
+    email: email || '',
     password: '',
     name: ''
   });
@@ -35,6 +37,15 @@ export function Login({ mode = 'signin' }: { mode?: 'signin' | 'signup' }) {
             ? 'Sign in to your account'
             : 'Create your account'}
         </h2>
+        
+        {success === 'payment_completed' && (
+          <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-green-800 text-sm text-center">
+              🎉 Payment successful! Your lifetime access has been activated. 
+              Please sign in to access your dashboard.
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">

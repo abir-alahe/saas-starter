@@ -4,12 +4,25 @@ import { Terminal } from './terminal';
 import HomeHero from '@/components/section/static/hero/home/HomeHero';
 import PricingPage from './pricing/page';
 import { PricingSectionBasic } from '@/components/section/static/pricing/Pricing';
+import { HandWrittenTitle } from '@/components/ui/custom/hand-writing-text';
+import { getStripePrices, getStripeProducts } from '@/lib/payments/stripe';
 
-export default function HomePage() {
+// Prices are fresh for one hour max
+export const revalidate = 3600;
+
+export default async function HomePage() {
+  const [prices, products] = await Promise.all([
+    getStripePrices(),
+    getStripeProducts(),
+  ]);
+
+  // Use the specific product ID
+  const PRODUCT_ID = 'prod_SRHhm2iNn3a061';
+  const lifetimePlan = products.find((product) => product.id === PRODUCT_ID);
+  const lifetimePrice = prices.find((price) => price.productId === PRODUCT_ID);
   return (
     <main>
-      <HomeHero/>
-
+      <HomeHero />
 
       <section className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -20,7 +33,9 @@ export default function HomePage() {
                 <span className="block text-orange-500">Faster Than Ever</span>
               </h1>
               <p className="mt-3 text-base text-gray-500 sm:mt-5 sm:text-xl lg:text-lg xl:text-xl">
-              Transform your furry best friend into a well-behaved companion with our proven training methods. Watch their tail wag with joy as they learn and grow.
+                Transform your furry best friend into a well-behaved companion
+                with our proven training methods. Watch their tail wag with joy
+                as they learn and grow.
               </p>
               <div className="mt-8 sm:max-w-lg sm:mx-auto sm:text-center lg:text-left lg:mx-0">
                 <a
@@ -62,7 +77,8 @@ export default function HomePage() {
                   Basic Training
                 </h2>
                 <p className="mt-2 text-base text-gray-500">
-                  Master essential commands like sit, stay, and come. Build a strong foundation for your dog's obedience and behavior.
+                  Master essential commands like sit, stay, and come. Build a
+                  strong foundation for your dog's obedience and behavior.
                 </p>
               </div>
             </div>
@@ -76,7 +92,8 @@ export default function HomePage() {
                   Cool Tricks
                 </h2>
                 <p className="mt-2 text-base text-gray-500">
-                  Learn impressive tricks like roll over, shake hands, and play dead. Watch your pup become the star of the neighborhood!
+                  Learn impressive tricks like roll over, shake hands, and play
+                  dead. Watch your pup become the star of the neighborhood!
                 </p>
               </div>
             </div>
@@ -86,11 +103,11 @@ export default function HomePage() {
                 <CreditCard className="h-6 w-6" />
               </div>
               <div className="mt-5">
-                <h2 className="text-lg font-medium text-gray-900">
-                  Fun Games
-                </h2>
+                <h2 className="text-lg font-medium text-gray-900">Fun Games</h2>
                 <p className="mt-2 text-base text-gray-500">
-                  Engage in interactive games and activities that strengthen your bond while keeping your dog mentally and physically stimulated.
+                  Engage in interactive games and activities that strengthen
+                  your bond while keeping your dog mentally and physically
+                  stimulated.
                 </p>
               </div>
             </div>
@@ -103,11 +120,14 @@ export default function HomePage() {
           <div className="lg:grid lg:grid-cols-2 lg:gap-8 lg:items-center">
             <div>
               <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
-                Give Your Dog The Gift of <br/>
+                Give Your Dog The Gift of <br />
                 Lifetime Training
               </h2>
               <p className="mt-3 max-w-3xl text-lg text-gray-500">
-                Your best friend deserves the best care. With our one-time payment, unlock unlimited access to premium training resources that will strengthen your bond forever. No monthly fees, just endless moments of joy with your furry companion.
+                Your best friend deserves the best care. With our one-time
+                payment, unlock unlimited access to premium training resources
+                that will strengthen your bond forever. No monthly fees, just
+                endless moments of joy with your furry companion.
               </p>
             </div>
             <div className="mt-8 lg:mt-0 flex justify-center lg:justify-end">
@@ -125,8 +145,16 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
       <section>
-       <PricingSectionBasic/>
+        <HandWrittenTitle
+          title="$50 off"
+          subtitle="for first 100 customer (100 left)"
+        />
+      </section>
+
+      <section>
+        <PricingSectionBasic priceId={lifetimePrice?.id} />
       </section>
     </main>
   );

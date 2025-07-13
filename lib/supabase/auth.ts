@@ -63,22 +63,37 @@ export async function getSession() {
 
 export async function getUser() {
   try {
+    console.log('getSupabaseUser: Creating server client...');
     const supabase = await createServerClient();
+    console.log('getSupabaseUser: Getting user from Supabase...');
     const { data: { user }, error } = await supabase.auth.getUser();
+
+    console.log('getSupabaseUser: Supabase response:', { 
+      hasUser: !!user, 
+      userId: user?.id, 
+      email: user?.email,
+      hasError: !!error,
+      errorMessage: error?.message 
+    });
 
     if (error) {
       // Don't log AuthSessionMissingError as it's expected during sign-out
       if (error.message !== 'Auth session missing!') {
         console.error('Error getting user:', error);
+      } else {
+        console.log('getSupabaseUser: Auth session missing (expected during sign-out)');
       }
       return null;
     }
 
+    console.log('getSupabaseUser: Returning user:', { userId: user?.id, email: user?.email });
     return user;
   } catch (error) {
     // Don't log AuthSessionMissingError as it's expected during sign-out
     if (error instanceof Error && error.message !== 'Auth session missing!') {
       console.error('Error in getUser:', error);
+    } else {
+      console.log('getSupabaseUser: Caught Auth session missing error');
     }
     return null;
   }

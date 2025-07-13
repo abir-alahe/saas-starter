@@ -215,24 +215,6 @@ function SinglePricingCardContent({
   const PrimaryButtonIcon = primaryButton.icon;
   const ChevronIcon = primaryButton.chevronIcon;
 
-  const handlePayment = async () => {
-    try {
-      if (price.priceId) {
-        // Use the new lifetime checkout action
-        const formData = new FormData();
-        formData.append('priceId', price.priceId);
-        await lifetimeCheckoutAction(formData);
-      } else {
-        // Fallback to sign-up if no price ID is provided
-        window.location.href = '/sign-up';
-      }
-    } catch (error) {
-      console.error("Payment error:", error);
-      // Redirect to sign-in if user is not authenticated
-      window.location.href = '/sign-in';
-    }
-  };
-
   return (
     <Card
       className={` text-black overflow-hidden border border-primary/10 relative group ${
@@ -262,7 +244,7 @@ function SinglePricingCardContent({
             </div>
           )}
 
-          <h3 className="text-2xl font-bold mb-2 text-accent">{title}</h3>
+          <h3 className="text-2xl font-bold mb-2 text-[#FF6900]">{title}</h3>
           <p className="text-muted-foreground mb-4">{subtitle}</p>
 
           <div className="flex items-baseline mb-6">
@@ -290,7 +272,7 @@ function SinglePricingCardContent({
 
               return (
                 <div key={index} className="flex items-center gap-2">
-                  <BenefitIcon className="h-4 w-4 text-accent" />
+                  <BenefitIcon className="h-4 w-4 text-gray-500" />
                   <span className="font-semibold">{benefit.text}</span>
                 </div>
               );
@@ -298,24 +280,27 @@ function SinglePricingCardContent({
           </div>
 
           <div className="mt-auto space-y-3">
-            <Button
-              className="w-full gap-2 group"
-              size="lg"
-              onClick={handlePayment}
-            >
-              <PrimaryButtonIcon className="h-4 w-4 " />
-              <span>{primaryButton.text}</span>
-              {ChevronIcon && (
-                <ChevronIcon className="h-4 w-4 ml-auto transition-transform group-hover:translate-x-1" />
-              )}
-            </Button>
+            <form action={lifetimeCheckoutAction}>
+              <input type="hidden" name="priceId" value={price.priceId} />
+              <Button
+                type="submit"
+                className="w-full gap-2 group"
+                size="lg"
+              >
+                <PrimaryButtonIcon className="h-4 w-4 " />
+                <span>{primaryButton.text}</span>
+                {ChevronIcon && (
+                  <ChevronIcon className="h-4 w-4 ml-auto transition-transform group-hover:translate-x-1" />
+                )}
+              </Button>
+            </form>
           </div>
         </div>
 
         {/* Right column - Features */}
         <div className="p-6 md:p-8 md:w-1/2 md:border-l border-border/50">
           <div className="flex items-center mb-4">
-            <h4 className="font-semibold text-accent">{featuresTitle}</h4>
+            <h4 className="font-semibold text-gray-700">{featuresTitle}</h4>
           </div>
 
           <div className="space-y-3 mb-6">
@@ -333,7 +318,7 @@ function SinglePricingCardContent({
                 transition={{ delay: 0.4 + i * 0.05, duration: 0.5 }}
                 className="flex items-center gap-3"
               >
-                <div className="flex h-5 w-5 items-center justify-center rounded-full bg-accent-foreground/40">
+                <div className="flex h-5 w-5 items-center justify-center rounded-full bg-black/30">
                   <FeaturesIcon className="h-3 w-3 text-accent" />
                 </div>
                 <span className="text-sm">{feature.text}</span>

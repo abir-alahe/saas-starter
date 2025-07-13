@@ -1,31 +1,50 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { signUpWithEmail } from '@/lib/supabase/auth';
+import { createClient } from '@supabase/supabase-js';
 import { db } from '@/lib/db/drizzle';
-import { users, teams, teamMembers, invitations, ActivityType } from '@/lib/db/schema';
+import { users, teams, teamMembers, invitations } from '@/lib/db/schema';
 import { and, eq } from 'drizzle-orm';
 import { createLifetimeCheckoutSession } from '@/lib/payments/stripe';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password, name, inviteId, redirect, priceId } = await request.json();
+    const { email, name, inviteId, redirect, priceId } = await request.json();
 
-    // Validate input
-    if (!email || !password) {
-      return NextResponse.json(
-        { error: 'Email and password are required' },
-        { status: 400 }
-      );
-    }
+    console.log('Sign up request:', { email, name, inviteId, redirect, priceId });
 
-    // Sign up with Supabase
-    const { user } = await signUpWithEmail(email, password, name);
+    // During sign-up, we expect the client-side Supabase auth to have already created the user
+    // We just need to handle database setup and redirects
     
-    if (!user) {
+    // Create Supabase client
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+    
+    // Get the current session from cookies
+    const cookieStore = request.cookies;
+    const supabaseAccessToken = cookieStore.get('sb-access-token')?.value;
+    const supabaseRefreshToken = cookieStore.get('sb-refresh-token')?.value;
+    
+    if (!supabaseAccessToken) {
+      console.log('No Supabase access token found in cookies');
       return NextResponse.json(
-        { error: 'Failed to create user. Please try again.' },
-        { status: 500 }
+        { error: 'Authentication required' },
+        { status: 401 }
       );
     }
+    
+    // Set the session in Supabase client
+    const { data: { user }, error: userError } = await supabase.auth.getUser(supabaseAccessToken);
+    
+    if (userError || !user) {
+      console.log('Failed to get user from Supabase:', userError);
+      return NextResponse.json(
+        { error: 'Invalid session' },
+        { status: 401 }
+      );
+    }
+    
+    console.log('Supabase user found:', { id: user.id, email: user.email });
 
     try {
       // Create user in our database
@@ -34,6 +53,13 @@ export async function POST(request: NextRequest) {
         email: user.email!,
         name: name || user.user_metadata?.name || email.split('@')[0],
         role: 'member'
+      }).onConflictDoUpdate({
+        target: users.id,
+        set: {
+          email: user.email!,
+          name: name || user.user_metadata?.name || email.split('@')[0],
+          updatedAt: new Date(),
+        }
       }).returning();
 
       let teamId: number | null = null;
@@ -61,8 +87,6 @@ export async function POST(request: NextRequest) {
             .update(invitations)
             .set({ status: 'accepted' })
             .where(eq(invitations.id, invitation.id));
-
-          // Activity logging removed for simplicity
         } else {
           return NextResponse.json(
             { error: 'Invalid or expired invitation.' },
@@ -84,8 +108,6 @@ export async function POST(request: NextRequest) {
 
         teamId = createdTeam.id;
         userRole = 'owner';
-
-        // Activity logging removed for simplicity
       }
 
       const newTeamMember = {
@@ -96,27 +118,40 @@ export async function POST(request: NextRequest) {
 
       await db.insert(teamMembers).values(newTeamMember);
 
-      // Handle checkout redirect
-      if (redirect === 'checkout' && priceId) {
-        const checkoutResult = await createLifetimeCheckoutSession({ user: createdUser, priceId });
-        return NextResponse.json(checkoutResult);
+      // Determine redirect URL
+      let redirectTo = '/dashboard';
+      
+      if (redirect) {
+        redirectTo = redirect;
+      } else if (priceId) {
+        redirectTo = `/pricing?priceId=${priceId}`;
+      } else if (!createdUser.hasLifetimeAccess) {
+        redirectTo = '/pricing';
       }
 
-      // Check if user has lifetime access
-      if (createdUser && !createdUser.hasLifetimeAccess) {
-        return NextResponse.json({ redirectTo: '/pricing' });
-      }
+      console.log('Sign-up API: Redirecting to:', redirectTo);
 
-      return NextResponse.json({ redirectTo: '/dashboard' });
+      return NextResponse.json({
+        success: true,
+        user: {
+          id: createdUser.id,
+          email: createdUser.email,
+          hasLifetimeAccess: createdUser.hasLifetimeAccess,
+        },
+        redirectTo,
+      });
     } catch (dbError) {
       // If there's a database error, redirect to pricing page
       console.error('Database error during sign-up:', dbError);
-      return NextResponse.json({ redirectTo: '/pricing' });
+      return NextResponse.json({ 
+        success: true,
+        redirectTo: '/pricing' 
+      });
     }
   } catch (error) {
-    console.error('Sign up error:', error);
+    console.error('Sign-up API error:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to create user. Please try again.' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

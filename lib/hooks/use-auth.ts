@@ -54,6 +54,29 @@ export function useAuth() {
   // Sign in mutation
   const signInMutation = useMutation({
     mutationFn: async (data: SignInData) => {
+      console.log('Signing in with:', { email: data.email, redirect: data.redirect });
+      
+      // First, authenticate with Supabase client-side to set session cookies
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+      
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (!authData.user) {
+        throw new Error('Sign in failed');
+      }
+
+      // Now call our API to handle redirects and get user data
       const response = await fetch('/api/auth/signin', {
         method: 'POST',
         headers: {
@@ -63,6 +86,7 @@ export function useAuth() {
       });
 
       const result = await response.json();
+      console.log('Sign in response:', result);
 
       if (!response.ok) {
         throw new Error(result.error || 'Sign in failed');
@@ -71,13 +95,22 @@ export function useAuth() {
       return result;
     },
     onSuccess: (result) => {
+      console.log('Sign in success, result:', result);
+      
       // Invalidate and refetch user data
       queryClient.invalidateQueries({ queryKey: ['user'] });
       
-      // Handle redirects
-      if (result?.redirectTo) {
-        router.push(result.redirectTo);
-      }
+      // Add a small delay to ensure session is set
+      setTimeout(() => {
+        // Handle redirects
+        if (result?.redirectTo) {
+          console.log('Redirecting to:', result.redirectTo);
+          router.push(result.redirectTo);
+        } else {
+          console.log('No redirect specified, pushing to dashboard');
+          router.push('/dashboard');
+        }
+      }, 100);
     },
     onError: (error) => {
       console.error('Sign in error:', error);
@@ -87,6 +120,34 @@ export function useAuth() {
   // Sign up mutation
   const signUpMutation = useMutation({
     mutationFn: async (data: SignUpData) => {
+      console.log('Signing up with:', { email: data.email, name: data.name });
+      
+      // First, authenticate with Supabase client-side to set session cookies
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+      
+      const { data: authData, error } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: {
+            name: data.name || data.email.split('@')[0],
+          },
+        },
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (!authData.user) {
+        throw new Error('Sign up failed');
+      }
+
+      // Now call our API to handle database setup and redirects
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: {
@@ -96,6 +157,7 @@ export function useAuth() {
       });
 
       const result = await response.json();
+      console.log('Sign up response:', result);
 
       if (!response.ok) {
         throw new Error(result.error || 'Sign up failed');

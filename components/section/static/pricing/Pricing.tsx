@@ -15,7 +15,7 @@ import {
   type Testimonial,
 } from "@/components/section/static/pricing/SinglePriceCard";
 
-export function PricingSectionBasic() {
+export function PricingSectionBasic({ priceId }: { priceId?: string }) {
   const features = [
     "Basic Training",
     "Basic Commands",
@@ -100,7 +100,7 @@ export function PricingSectionBasic() {
             <CreditCard className="mr-1 h-3.5 w-3.5 text-primary" />
             <span className="text-xs font-medium">Pricing</span>
           </div>
-          <h2 className="text-3xl text-accent font-bold tracking-tighter sm:text-4xl md:text-5xl mb-4">
+          <h2 className="text-3xl text-[#FF6900] font-bold tracking-tighter sm:text-4xl md:text-5xl mb-4">
             Dogs of all ages can learn new tricks!
           </h2>
           <p className="max-w-[700px] text-muted-foreground md:text-xl/relaxed">
@@ -119,7 +119,7 @@ export function PricingSectionBasic() {
             current: "$9",
             original: "$69",
             discount: "$50 Off",
-            priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID || "price_placeholder", // Add your Stripe price ID here
+            priceId: priceId,
           }}
           benefits={[
             {

@@ -1,7 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db/drizzle';
 import { users } from '@/lib/db/schema';
-import { setSession } from '@/lib/auth/session';
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/payments/stripe';
 import { getUserByStripeCustomerId, updateUserLifetimeAccess } from '@/lib/db/queries';
@@ -45,7 +44,7 @@ export async function GET(request: NextRequest) {
     const user = await db
       .select()
       .from(users)
-      .where(eq(users.id, Number(userId)))
+      .where(eq(users.id, userId))
       .limit(1);
 
     if (user.length === 0) {
@@ -53,7 +52,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Update user with lifetime access
-    await updateUserLifetimeAccess(Number(userId), {
+    await updateUserLifetimeAccess(userId, {
       hasLifetimeAccess: true,
       stripePaymentIntentId: paymentIntentId,
       purchaseDate: new Date()
@@ -67,13 +66,20 @@ export async function GET(request: NextRequest) {
           stripeCustomerId: customerId,
           updatedAt: new Date(),
         })
-        .where(eq(users.id, Number(userId)));
+        .where(eq(users.id, userId));
     }
 
-    await setSession(user[0]);
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    // Don't try to set a custom session - let the user sign in normally
+    // Redirect to sign-in with success message
+    const signInUrl = new URL('/sign-in', request.url);
+    signInUrl.searchParams.set('success', 'payment_completed');
+    signInUrl.searchParams.set('email', user[0].email || '');
+    return NextResponse.redirect(signInUrl);
   } catch (error) {
     console.error('Error handling successful checkout:', error);
-    return NextResponse.redirect(new URL('/error', request.url));
+    // Redirect to pricing page with error message instead of generic error page
+    const errorUrl = new URL('/pricing', request.url);
+    errorUrl.searchParams.set('error', 'payment_processing');
+    return NextResponse.redirect(errorUrl);
   }
 }

@@ -3,7 +3,9 @@ import { redirect } from 'next/navigation';
 import { User } from '@/lib/db/schema';
 import {
   getUser,
-  updateUserLifetimeAccess
+  updateUserLifetimeAccess,
+  getUserByStripeCustomerId,
+  updateUserStripeCustomerId
 } from '@/lib/db/queries';
 
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -21,6 +23,22 @@ export async function createLifetimeCheckoutSession({
     redirect(`/sign-up?redirect=checkout&priceId=${priceId}`);
   }
 
+  // Create or get Stripe customer
+  let customerId = user.stripeCustomerId;
+  if (!customerId) {
+    const customer = await stripe.customers.create({
+      email: user.email || undefined,
+      name: user.name || undefined,
+      metadata: {
+        userId: user.id
+      }
+    });
+    customerId = customer.id;
+    
+    // Update user with Stripe customer ID
+    await updateUserStripeCustomerId(user.id, customerId);
+  }
+
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ['card'],
     line_items: [
@@ -32,7 +50,7 @@ export async function createLifetimeCheckoutSession({
     mode: 'payment', // Changed from 'subscription' to 'payment'
     success_url: `${process.env.BASE_URL}/api/stripe/checkout?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${process.env.BASE_URL}/pricing`,
-    customer: user.stripeCustomerId || undefined,
+    customer: customerId,
     client_reference_id: user.id.toString(),
     allow_promotion_codes: true,
     // Remove trial_period_days since it's a one-time payment
@@ -82,6 +100,8 @@ export async function handlePaymentSuccess(
   const paymentIntentId = paymentIntent.id;
   const status = paymentIntent.status;
 
+  console.log('Payment success handler called:', { customerId, paymentIntentId, status });
+
   // Find user by Stripe customer ID
   const user = await getUserByStripeCustomerId(customerId);
 
@@ -90,12 +110,16 @@ export async function handlePaymentSuccess(
     return;
   }
 
+  console.log('Found user:', { userId: user.id, email: user.email });
+
   if (status === 'succeeded') {
+    console.log('Updating user lifetime access for user:', user.id);
     await updateUserLifetimeAccess(user.id, {
       hasLifetimeAccess: true,
       stripePaymentIntentId: paymentIntentId,
       purchaseDate: new Date()
     });
+    console.log('Successfully updated user lifetime access');
   }
 }
 
@@ -133,12 +157,7 @@ export async function getStripeProducts() {
   }));
 }
 
-// Helper function to get user by Stripe customer ID
-async function getUserByStripeCustomerId(customerId: string) {
-  // This would need to be implemented in queries.ts
-  // For now, we'll return null and handle it in the calling function
-  return null;
-}
+
 
 // Legacy functions for migration (keeping for now)
 export async function createCheckoutSession({

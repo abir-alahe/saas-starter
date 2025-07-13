@@ -3,14 +3,18 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
+    console.log('Fetching user from API');
     const user = await getUser();
+    console.log('User from database:', { userId: user?.id, hasLifetimeAccess: user?.hasLifetimeAccess });
     
     if (!user) {
+      console.log('No user found, returning 401');
       return NextResponse.json({ error: 'User not authenticated' }, { status: 401 });
     }
 
     // Return user data without sensitive information
     const { ...safeUser } = user;
+    console.log('Returning user data');
     
     return NextResponse.json(safeUser);
   } catch (error) {

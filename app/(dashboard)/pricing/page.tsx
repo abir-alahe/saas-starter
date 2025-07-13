@@ -2,6 +2,8 @@ import { lifetimeCheckoutAction } from '@/lib/payments/actions';
 import { Check } from 'lucide-react';
 import { getStripePrices, getStripeProducts } from '@/lib/payments/stripe';
 import { SubmitButton } from './submit-button';
+import { HandWrittenTitle } from '@/components/ui/custom/hand-writing-text';
+import { PricingSectionBasic } from '@/components/section/static/pricing/Pricing';
 
 // Prices are fresh for one hour max
 export const revalidate = 3600;
@@ -12,8 +14,10 @@ export default async function PricingPage() {
     getStripeProducts(),
   ]);
 
-  const lifetimePlan = products.find((product) => product.name === 'Lifetime Access');
-  const lifetimePrice = prices.find((price) => price.productId === lifetimePlan?.id);
+  // Use the specific product ID
+  const PRODUCT_ID = 'prod_SRHhm2iNn3a061';
+  const lifetimePlan = products.find((product) => product.id === PRODUCT_ID);
+  const lifetimePrice = prices.find((price) => price.productId === PRODUCT_ID);
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -104,6 +108,17 @@ export default async function PricingPage() {
           </div>
         </div>
       </div>
+
+      <section>
+        <HandWrittenTitle
+          title="$50 off"
+          subtitle="for first 100 customer (100 left)"
+        />
+      </section>
+
+      <section>
+        <PricingSectionBasic priceId={lifetimePrice?.id} />
+      </section>
     </main>
   );
 }
